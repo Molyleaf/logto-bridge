@@ -22,6 +22,7 @@ class AliCloudSMSConfig(BaseModel):
     scheme_name: str = "default scheme"
     code_length: int = 6
     valid_time: int = 300
+    always_return_2xx: bool = False
 
 
 class SMTPAccountConfig(BaseModel):
@@ -63,6 +64,14 @@ class Settings(BaseModel):
         # @ai-intent: 解析并返回负载均衡 SMTP 账户列表
         accounts = self.email.get("smtp_accounts", [])
         return [SMTPAccountConfig(**acc) for acc in accounts]
+
+    @property
+    def email_always_return_2xx(self) -> bool:
+        """
+        邮件服务在投递彻底失败时是否仍然强行对 Logto 返回 2xx 成功响应。
+        """
+        # @ai-intent: 解析并返回邮件服务是否总是返回 2xx
+        return self.email.get("always_return_2xx", False)
 
 
 def load_settings() -> Settings:

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>组织加入邀请</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #F4F6F8;
+            font-family: OPPOSans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #333333;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #FFFFFF;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 91, 172, 0.06);
+            border: 1px solid #EAEAEA;
+        }
+        .header {
+            background: linear-gradient(135deg, #0A192F 0%, #172A45 100%);
+            padding: 35px 40px;
+            text-align: center;
+            border-bottom: 3px solid #005BAC;
+        }
+        .header h1 {
+            color: #FFFFFF;
+            font-size: 24px;
+            margin: 0;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .content {
+            padding: 40px;
+            line-height: 1.6;
+            text-align: center;
+        }
+        .welcome-text {
+            font-size: 16px;
+            color: #4A5568;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        .message-body {
+            font-size: 15px;
+            color: #4A5568;
+            margin-bottom: 35px;
+            text-align: left;
+        }
+        .btn-container {
+            margin: 35px 0;
+            text-align: center;
+        }
+        .btn-action {
+            display: inline-block;
+            padding: 14px 35px;
+            background-color: #005BAC;
+            color: #FFFFFF !important;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 91, 172, 0.3);
+            transition: all 0.2s ease;
+        }
+        .btn-action:hover {
+            background-color: #003DA6;
+            box-shadow: 0 6px 20px rgba(0, 91, 172, 0.4);
+            transform: translateY(-1px);
+        }
+        .url-box {
+            background-color: #F7FAFC;
+            border: 1px solid #E2E8F0;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 25px 0;
+            font-size: 12px;
+            color: #718096;
+            word-break: break-all;
+            text-align: left;
+        }
+        .warning-box {
+            margin-top: 30px;
+            padding: 15px 20px;
+            background-color: #FFF5F5;
+            border-radius: 6px;
+            border: 1px solid #FED7D7;
+            font-size: 13px;
+            color: #C53030;
+            text-align: left;
+        }
+        .footer {
+            background-color: #F8FAFC;
+            padding: 25px 40px;
+            text-align: center;
+            font-size: 12px;
+            color: #A0AEC0;
+            border-top: 1px solid #E2E8F0;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Logto 协同中心</h1>
+        </div>
+        <div class="content">
+            <div class="welcome-text">您好：</div>
+            <p class="message-body">您已获邀加入组织。请点击下方按钮以接受本次邀请并加入该组织：</p>
+            
+            <div class="btn-container">
+                <a href="{{ link }}" class="btn-action" target="_blank">接受加入邀请</a>
+            </div>
+
+            <p class="message-body" style="font-size:13px; color:#A0AEC0; margin-bottom: 5px;">如果上方按钮无法点击，您也可以复制下方完整链接并在浏览器中打开：</p>
+            <div class="url-box">{{ link }}</div>
+
+            <div class="warning-box">
+                <strong>安全警示：</strong>此邀请链接仅供受邀用户本人使用，请勿随意将链接分享给他人。如果您并未期待此项邀请，请直接忽略本邮件。
+            </div>
+        </div>
+        <div class="footer">
+            <p>本邮件由 Logto 身份安全中心系统自动发出，请勿直接回复。</p>
+            <p>© 2026 Logto Identity Security Gateway. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

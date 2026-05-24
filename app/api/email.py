@@ -29,10 +29,16 @@ class LogtoEmailPayload(BaseModel):
     Logto 邮件推送 payload 载荷。
     """
 
-    code: str = Field(description="生成的邮箱验证码或链接安全码")
+    code: Optional[str] = Field(
+        default=None, description="生成的邮箱验证码或链接安全码"
+    )
+    link: Optional[str] = Field(default=None, description="邀请链接或重定向激活链接")
     locale: Optional[str] = Field(
         default="en", description="用户的首选语言环境 (如 zh-CN, en)"
     )
+
+    # 允许接收任何其他自定义字段，如 application / organization 等
+    model_config = {"extra": "allow"}
 
 
 class LogtoEmailRequest(BaseModel):
@@ -82,9 +88,14 @@ async def handle_logto_email(request: LogtoEmailRequest):
 
     try:
         template = jinja_env.get_template(template_rel_path)
-        html_content = template.render(
-            code=request.payload.code, valid_minutes=valid_minutes
-        )
+        # 将 payload 中的所有自定义属性与预定义关键字段一同透传给 Jinja2 上下文，保证对 Logto 额外扩展参数的完美支持
+        render_context = {
+            "code": request.payload.code or "",
+            "link": request.payload.link or "",
+            "valid_minutes": valid_minutes,
+            **request.payload.model_dump(),
+        }
+        html_content = template.render(**render_context)
     except Exception as e:
         logger.exception("Jinja2 渲染邮件 HTML 模板发生严重异常！")
         raise HTTPException(
@@ -102,6 +113,26 @@ async def handle_logto_email(request: LogtoEmailRequest):
         "ForgotPassword": {
             "zh-CN": "重置密码 - 验证安全码",
             "en": "Reset Password Verification Code",
+        },
+        "OrganizationInvitation": {
+            "zh-CN": "您已获邀加入组织",
+            "en": "Organization Invitation",
+        },
+        "BindNewIdentifier": {
+            "zh-CN": "绑定新账号 - 验证安全码",
+            "en": "Bind New Identifier - Verification Code",
+        },
+        "MfaVerification": {
+            "zh-CN": "多因素身份验证 (MFA) - 验证安全码",
+            "en": "Multi-Factor Authentication (MFA) - Verification Code",
+        },
+        "Generic": {
+            "zh-CN": "安全身份验证码",
+            "en": "Security Verification Code",
+        },
+        "TestConnection": {
+            "zh-CN": "Logto 邮件服务连接测试成功",
+            "en": "Logto Mail Connector Test Successful",
         },
     }
 
@@ -123,6 +154,15 @@ async def handle_logto_email(request: LogtoEmailRequest):
         logger.critical(
             f"邮件网关投递彻底失败，全部 SMTP 均已宕机或被拒，收件地址: {request.to}"
         )
+
+        # 兼容性容灾降级处理：若配置为 always_return_2xx，则返回 200 OK 告知 Logto，避免认证流中断
+        if settings.email_always_return_2xx:
+            logger.warning("已启用 always_return_2xx 策略，强制向 Logto 返回 2xx 响应")
+            return {
+                "status": "failed",
+                "message": "All configured SMTP servers failed to deliver the email",
+            }
+
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="All configured SMTP servers failed to deliver the email",

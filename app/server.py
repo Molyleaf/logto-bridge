@@ -1,5 +1,6 @@
 import os
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.core.logging import setup_logging
@@ -11,11 +12,25 @@ log_level = os.environ.get("LOG_LEVEL", "INFO")
 setup_logging(log_level)
 logger = logging.getLogger("app.server")
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    FastAPI 应用生命周期管理，代替已过时的 on_event("startup") 事件处理器。
+    """
+    logger.info("==================================================================")
+    logger.info(" Logto Bridge Gateway 成功启动！运行于 FastAPI 容器中。")
+    logger.info(" 正在代理服务：阿里云号码验证短信服务 (DYPNSAPI) & 负载均衡邮件池")
+    logger.info("==================================================================")
+    yield
+
+
 # 2. 构造 FastAPI 应用根实例
 app = FastAPI(
     title="Logto Bridge Gateway",
     description="Bridge HTTP webhook requests from Logto to Alibaba Cloud DYPNSAPI SMS and multiple SMTP mailers.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # 3. 挂载子路由层
@@ -30,14 +45,3 @@ async def healthz():
     """
     # @ai-intent: 轻量响应以回报网关存活状态
     return {"status": "healthy", "service": "logto-bridge"}
-
-
-@app.on_event("startup")
-async def startup_event():
-    """
-    应用启动时的声明事件。
-    """
-    logger.info("==================================================================")
-    logger.info(" Logto Bridge Gateway 成功启动！运行于 FastAPI 容器中。")
-    logger.info(" 正在代理服务：阿里云号码验证短信服务 (DYPNSAPI) & 负载均衡邮件池")
-    logger.info("==================================================================")
