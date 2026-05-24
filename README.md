@@ -5,28 +5,30 @@
 [![Docker](https://img.shields.io/badge/Docker-Supported-2496ED.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-`Logto Bridge Gateway` 是一个**轻量、高效、高可用**的第三方账户/网关桥接服务。专为 [Logto](https://logto.io) 身份认证平台定制，解决其无法直接对接国内主流短信供应商（如**阿里云号码认证服务**）或需要高可靠性**多 SMTP 账号负载均衡发送邮件**的痛点。
+[简体中文 (Simplified Chinese)](README.zh_CN.md) | English
 
-本项目将 Logto 发出的标准化 HTTP Webhook 格式请求，透明、安全地桥接转换为目标供应商 API 规范，并内置强大的容灾与隐私保障机制。
+`Logto Bridge Gateway` is a **lightweight, highly concurrent, and highly available** HTTP bridge gateway specifically customized for [Logto](https://logto.io). 
 
----
-
-## 🎯 核心特性
-
-*   **⚡ 异步高并发底座**：基于 **FastAPI + Uvicorn** 全异步生态构建，使用 `aiosmtplib` 异步发送邮件，配合 `asyncio.to_thread` 线程隔离调用阿里云 SDK，防止任何同步 IO 阻塞事件循环。
-*   **💬 阿里云号码认证短信集成**：全面对接阿里云**号码认证服务 (DYPNSAPI)**，调用 `SendSmsVerifyCode` 接口，支持对 Logto 自动生成的验证码直接透传、有效期换算，并提供手机号中间 4 位日志脱敏。
-*   **✉️ SMTP 负载均衡与自动故障转移 (Failover)**：支持在配置文件中挂载多个不同的 SMTP 账户。发送邮件时，在多协程并发安全下通过 **Round-Robin (轮询)** 算法分配账户；当某个账户发生网络超时、频控或认证失败时，**静默容灾自动漂移**至下一个可用节点，直至完整遍历账户池，保证用户注册登录流绝不断网。
-*   **🎨 极其精美的响应式 HTML 邮件模板**：使用 Jinja2 引擎动态渲染邮件。遵循现代响应式 UI 设计（宽 600px 内联样式，深海蓝渐变 Header `#0A192F` -> `#172A45`，高质感卡片），支持**中英双语 (zh-CN / en)** 根据 Logto 请求体中的 `locale` 自动匹配，并针对不存在的模板提供优雅降级。
-*   **🔒 严密的安全隔离与合规审计**：
-    *   **安全防线**：所有 API 均强校验 `Authorization: Bearer <Token>` 或 `X-Bridge-Token`，拦截未经授权的匿名访问。
-    *   **零泄露日志流**：严格执行日志脱敏（Sanitization），禁止在日志中打印验证码、激活链接、SMTP 密码及未脱敏的收件地址/手机号。
-*   **🛠️ 完美的容灾降级开关 (`always_return_2xx`)**：在网关后端服务彻底不可用时（例如阿里云欠费、全部 SMTP 节点全部宕机），可配置开启该降级模式，强行对 Logto 返回 2xx 成功响应，从而避免 Logto 注册认证前端出现报错弹窗，最大化保护用户体验。
+It bridges standardized HTTP Webhook requests emitted by Logto to destination service APIs, enabling seamless integration with domestic SMS service providers (such as **Alibaba Cloud DYPNSAPI**) and ensuring high-reliability email delivery using a **load-balanced SMTP pool with automatic failover**.
 
 ---
 
-## 📐 架构设计与数据流拓扑
+## 🎯 Key Features
 
-以下是 `Logto Bridge Gateway` 的核心架构及 Webhook 请求流向拓扑：
+*   **⚡ Asynchronous High-Concurrency Core**: Built on **FastAPI and Uvicorn**. Leveraging `aiosmtplib` for asynchronous email delivery and using `asyncio.to_thread` for threadpool-isolated execution of synchronous Alibaba Cloud SDK calls to keep the asyncio event loop unblocked.
+*   **💬 Alibaba Cloud DYPNSAPI SMS Integration**: Fully integrates Alibaba Cloud's **Number Authentication Service (DYPNSAPI)** using the `SendSmsVerifyCode` interface, directly passing Logto's generated verification codes, converting expiration timings, and masking phone numbers in logs.
+*   **✉️ SMTP Load Balancing & Failover**: Configures a list of multiple SMTP accounts. Emails are sent using a thread-safe **Round-Robin** algorithm. If a mailer encounters a timeout, rate limit, or auth failure, it **silently fails over** to the next available account in the pool, only raising an error if all servers fail.
+*   **🎨 Premium Responsive Bilingual Email Templates**: Dynamically renders HTML emails using the Jinja2 engine. Follows modern responsive email design rules (within 600px, inline CSS, navy blue gradients `#0A192F` -> `#172A45`, and elegant cards). It automatically serves **English (en) or Chinese (zh-CN)** templates based on Logto's `locale` parameter, with graceful fallback to default templates if a specific workflow template is missing.
+*   **🔒 Strict Security & Privacy Sanitization**:
+    *   **Access Control**: All endpoints enforce `Authorization: Bearer <Token>` or `X-Bridge-Token` headers.
+    *   **Data Masking**: Strictly sanitizes logs, preventing verification codes, invite links, SMTP passwords, and plain email addresses/phone numbers from being written into files or stdout.
+*   **🛠️ Graceful Disaster Recovery (`always_return_2xx`)**: If target external services fail completely (e.g. Alibaba Cloud balance run-out, or all SMTP servers down), this option forces the gateway to return `2xx OK` to Logto, avoiding disruptive frontend error popups and protecting the end-user authentication experience.
+
+---
+
+## 📐 Architecture & Data Flow Topology
+
+Here is the core architecture and data flow of `Logto Bridge Gateway`:
 
 ```mermaid
 graph TD
@@ -35,40 +37,40 @@ graph TD
     end
 
     subgraph Logto Bridge Gateway (FastAPI)
-        Auth[安全依赖层 verify_api_token]
-        Router[路由控制层 Router]
-        SMS_C[阿里云号码认证客户端]
-        Mail_C[SMTP 负载均衡分发器]
-        Jinja[Jinja2 模板渲染引擎]
+        Auth[Security Dependency layer verify_api_token]
+        Router[Router Layer]
+        SMS_C[AliCloud SMS Client]
+        Mail_C[SMTP Load-Balanced Dispatcher]
+        Jinja[Jinja2 Template Engine]
         
         L -->|1. HTTP Webhook Request| Auth
-        Auth -->|2. Token 校验成功| Router
+        Auth -->|2. Token Verified| Router
         
         Router -->|3a. POST /api/sms| SMS_C
         Router -->|3b. POST /api/email| Jinja
-        Jinja -->|4. 渲染双语 HTML| Mail_C
+        Jinja -->|4. Render HTML| Mail_C
     end
 
     subgraph Third-Party Providers
-        Ali[阿里云 DYPNSAPI 短信通道]
-        SMTP_Pool[SMTP 账户池]
-        SMTP1[SMTP 账户 A]
-        SMTP2[SMTP 账户 B]
-        SMTP3[SMTP 账户 C]
+        Ali[Alibaba Cloud DYPNSAPI SMS]
+        SMTP_Pool[SMTP Server Pool]
+        SMTP1[SMTP Account A]
+        SMTP2[SMTP Account B]
+        SMTP3[SMTP Account C]
         
-        SMS_C -->|5a. 线程隔离调用| Ali
-        Mail_C -->|5b. Round-Robin 依次轮询| SMTP_Pool
+        SMS_C -->|5a. Threadpool Call| Ali
+        Mail_C -->|5b. Round-Robin Dispatch| SMTP_Pool
         SMTP_Pool -.-> SMTP1
         SMTP_Pool -.-> SMTP2
         SMTP_Pool -.-> SMTP3
     end
 
     subgraph End Users
-        User_Phone[终端用户手机]
-        User_Email[终端用户邮箱]
+        User_Phone[End User Mobile]
+        User_Email[End User Mailbox]
         
-        Ali -->|6a. 投递验证码短信| User_Phone
-        SMTP_Pool -->|6b. 发送精美 HTML 邮件| User_Email
+        Ali -->|6a. Deliver SMS| User_Phone
+        SMTP_Pool -->|6b. Send Beautiful Email| User_Email
     end
     
     style Auth fill:#f9f,stroke:#333,stroke-width:2px
@@ -78,182 +80,182 @@ graph TD
 
 ---
 
-## 📂 项目目录指引
+## 📂 Directory Layout
 
 ```text
 logto-bridge/
 ├── app/
 │   ├── __init__.py
-│   ├── server.py             # FastAPI 实例创建、生命周期 lifespan 管理与健康检查
-│   ├── api/                  # API 路由与安全网关层
-│   │   ├── deps.py           # 全局安全令牌认证依赖校验 (verify_api_token)
-│   │   ├── email.py          # 接收 Logto 邮件 Webhook，执行 Jinja2 渲染并分发
-│   │   └── sms.py            # 接收 Logto 短信 Webhook，适配投递至阿里云
-│   ├── core/                 # 核心系统支撑
-│   │   ├── config.py         # 统一 TOML 配置管理与环境变量合并重写 (Pydantic v2)
-│   │   └── logging.py        # 全局统一日志格式，提供可观测性基础
-│   ├── integrations/         # 三方 SDK 与通道集成
-│   │   ├── email.py          # 封装 SMTP Round-Robin 轮询与 Failover 自动容灾
-│   │   └── sms.py            # 封装阿里云号码认证 SDK 线程池隔离异步调用
-│   └── templates/            # 多语言 HTML 邮件模板文件夹
-│       ├── zh-CN/            # 简体中文邮件模板 (SignIn.html, Register.html 等)
-│       └── en/               # 英文邮件模板
+│   ├── server.py             # FastAPI instance, lifespan management, and healthcheck
+│   ├── api/                  # API routing & security dependency
+│   │   ├── deps.py           # Authorization header token verification (verify_api_token)
+│   │   ├── email.py          # Email webhook endpoint, rendering and round-robin dispatch
+│   │   └── sms.py            # SMS webhook endpoint, converting and forwarding to AliCloud
+│   ├── core/                 # Core utilities
+│   │   ├── config.py         # Configuration settings & environment variable overrides (Pydantic v2)
+│   │   └── logging.py        # Global log formats for centralized observability
+│   ├── integrations/         # Service integrations
+│   │   ├── email.py          # SMTP Round-Robin and Failover delivery logic
+│   │   └── sms.py            # Alibaba Cloud SDK threadpool-isolated wrapper
+│   └── templates/            # Multi-language HTML email templates
+│       ├── zh-CN/            # Simplified Chinese templates (SignIn.html, Register.html etc.)
+│       └── en/               # English templates
 ├── config/
-│   ├── config.toml           # 生产环境配置文件 (由 config.example.toml 复制重命名)
-│   └── config.example.toml   # 官方标准 TOML 配置模板
-├── tests/                    # 单元与集成测试套件
-├── Dockerfile                # 基于多阶段构建的轻量化生产 Docker 镜像配置
-├── docker-compose.yml        # 一键容器化编排部署文件
-├── pyproject.toml            # 基于 PEP 621 的 Python 项目依赖与打包规范
-└── AGENTS.md                 # 仓库 AI/Agent 开发最高准则与红线规范
+│   ├── config.toml           # Production configuration file (copy from config.example.toml)
+│   └── config.example.toml   # Template configuration file
+├── tests/                    # Unit and integration test suites
+├── Dockerfile                # Lightweight multi-stage Docker build config
+├── docker-compose.yml        # Docker Compose orchestrator
+├── pyproject.toml            # Python packaging and dependency config (PEP 621)
+└── AGENTS.md                 # Development guidelines and coding contracts for AI/Agents
 ```
 
 ---
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 方案一：使用现代包管理器 `uv`（推荐，速度极快）
+### Option 1: Using `uv` Package Manager (Recommended)
 
-1.  **克隆仓库**：
+1.  **Clone the Repository**:
     ```bash
     git clone https://github.com/molyleaf/logto-bridge.git
     cd logto-bridge
     ```
 
-2.  **创建虚拟环境并安装依赖**：
+2.  **Create Virtual Environment & Install Dependencies**:
     ```bash
     uv venv --python 3.12
-    # 激活虚拟环境 (Windows)
+    # Activate virtualenv (Windows)
     .venv\Scripts\activate
-    # 激活虚拟环境 (Linux/macOS)
+    # Activate virtualenv (Linux/macOS)
     source .venv/bin/activate
     
-    # 安装全部依赖（含开发依赖）
+    # Install dependencies with dev options
     uv pip install -e ".[dev]"
     ```
 
-3.  **准备配置文件**：
-    将样例配置复制为正式配置文件，并按照下文的 [配置指南](#-配置指南) 进行修改：
+3.  **Prepare the Config File**:
+    Copy the example TOML file and configure your credentials:
     ```bash
-    copy config\config.example.toml config\config.toml
+    cp config/config.example.toml config/config.toml
     ```
 
-4.  **启动开发服务器**：
+4.  **Run Development Server**:
     ```bash
     uvicorn app.server:app --reload --port 8000
     ```
-    启动后可访问本地交互式文档：[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)。
+    Access interactive Swagger docs at: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
 ---
 
-### 方案二：使用传统 `pip`
+### Option 2: Using Standard `pip`
 
-1.  **安装依赖**：
+1.  **Install Dependencies**:
     ```bash
     pip install -r requirements.txt
     pip install -e ".[dev]"
     ```
-2.  **启动服务**：
+2.  **Start Server**:
     ```bash
     uvicorn app.server:app --port 8000
     ```
 
 ---
 
-### 方案三：使用 Docker / Docker Compose（推荐生产环境）
+### Option 3: Using Docker & Docker Compose (Production Environment)
 
-本项目已将配置文件移出镜像，仅通过挂载或环境变量重写，最大程度保证镜像的安全性。
+To guarantee secret credentials safety, the TOML config file is not packaged into the Docker image but is either mounted or overridden by environment variables.
 
-1.  **构建并拉起容器**：
+1.  **Build and Start Containers**:
     ```bash
     docker-compose up -d --build
     ```
 
-2.  **查看服务运行日志**：
+2.  **View Logs**:
     ```bash
     docker-compose logs -f logto-bridge
     ```
 
-3.  **健康检查**：
-    内置了针对 Docker 探针的本地轻量化接口 `/healthz`。可通过以下命令验证网关存活状态：
+3.  **Health Check**:
+    Verifies container status using the lightweight endpoint `/healthz`:
     ```bash
     curl http://localhost:8000/healthz
     ```
 
 ---
 
-## 🛠️ 配置指南
+## 🛠️ Configuration Settings
 
-所有的配置项集中在 `config/config.toml` 中。以下是核心配置项深度解析：
+Modify all settings in `config/config.toml`. Here are the core settings:
 
 ```toml
 # ==============================================================================
-# Logto Bridge 生产环境配置文件
+# Logto Bridge Production Configuration
 # ==============================================================================
 
-# 桥接器安全令牌。来自 Logto 的 Webhook 请求头中必须携带 Bearer Token 或 X-Bridge-Token
+# Authorization secret token. Requests must match this via Bearer or X-Bridge-Token
 api_token = "your-extremely-secure-api-token-here"
 
-# 阿里云号码认证服务（DYPNSAPI）配置，用于发送短信验证码
+# Alibaba Cloud Number Authentication Service (DYPNSAPI) SMS config
 [sms.alicloud]
 access_key_id = "LTAI5tXxxxxxxxxxxxxxxxxx"
 access_key_secret = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-endpoint = "dypnsapi.aliyuncs.com" # 号码认证服务默认服务端点
-sign_name = "我的APP" # 号码认证控制台审核通过的签名（不支持普通短信签名）
-template_code = "SMS_200000000" # 控制台审核通过的系统模板
-code_length = 6 # 验证码长度 (4-8 位)，默认为 6
-valid_time = 300 # 验证码有效时间（秒），默认为 300 秒（5分钟）
-always_return_2xx = false # 短信发送彻底失败时，是否强行返回 2xx，保障前端流不中断（默认 false）
+endpoint = "dypnsapi.aliyuncs.com"
+sign_name = "My App Name" # Must match approved signature in AliCloud console
+template_code = "SMS_200000000" # Approved template code
+code_length = 6 # Verification code length (4-8)
+valid_time = 300 # Expiration time in seconds (5 minutes)
+always_return_2xx = false # Force return 200 to Logto even if delivery fails
 
-# 邮件发送全局配置
+# Global email settings
 [email]
-always_return_2xx = false # 所有邮件服务器发送失败时，是否强行返回 2xx，保障前端流不中断（默认 false）
+always_return_2xx = false # Force return 200 to Logto even if all SMTP mailers fail
 
-# 负载均衡多 SMTP 发送账户池（依次轮询且故障自动转移）
+# Load-balanced SMTP accounts
 [[email.smtp_accounts]]
 host = "smtp.primary-email.com"
-port = 465 # SSL/TLS 加密端口
+port = 465
 username = "sender1@primary-email.com"
 password = "primary_smtp_password"
-use_tls = true # 强制使用 SSL/TLS 加密
+use_tls = true
 sender_email = "security@primary-email.com"
-sender_name = "安全中心"
+sender_name = "Security Center"
 
 [[email.smtp_accounts]]
 host = "smtp.backup-email.com"
-port = 587 # StartTLS 加密端口
+port = 587
 username = "sender2@backup-email.com"
 password = "backup_smtp_password"
-use_tls = false # 不强制 TLS，通过 StartTLS 协商
+use_tls = false # StartTLS
 sender_email = "no-reply@backup-email.com"
-sender_name = "系统通知"
+sender_name = "System Notification"
 ```
 
-### 💡 环境变量覆盖（Docker 环境最佳实践）
+### 💡 Environment Variable Overrides
 
-为了防止敏感凭证（如阿里云密钥及 SMTP 密码）写入配置文件导致泄漏，本项目支持环境变量最高优先级覆盖：
+For secure deployments (e.g. in Kubernetes/Docker), configurations can be overridden with high-priority environment variables:
 
-*   `BRIDGE_API_TOKEN`：覆盖根配置中的 `api_token`。
-*   `BRIDGE_SMS_ACCESS_KEY_ID`：覆盖 `sms.alicloud.access_key_id`。
-*   `BRIDGE_SMS_ACCESS_KEY_SECRET`：覆盖 `sms.alicloud.access_key_secret`。
-
----
-
-## 📖 API 接口契约规范
-
-### 1. 安全校验头 (Authentication)
-所有接收端点均强制拦截未鉴权请求。Logto 的 Webhook 连接器配置中必须加入以下两种请求头之一：
-
-*   方式一：`Authorization: Bearer <api_token>`（推荐）
-*   方式二：`X-Bridge-Token: <api_token>`
+*   `BRIDGE_API_TOKEN`: Overrides `api_token` setting.
+*   `BRIDGE_SMS_ACCESS_KEY_ID`: Overrides `sms.alicloud.access_key_id`.
+*   `BRIDGE_SMS_ACCESS_KEY_SECRET`: Overrides `sms.alicloud.access_key_secret`.
 
 ---
 
-### 2. 短信网关接口：`POST /api/sms`
+## 📖 API Contract Specifications
 
-由 Logto HTTP 短信连接器触发的报文格式：
+### 1. Authorization Header
+All endpoints require a matching key. Pass it using either:
 
-*   **请求体示例 (JSON)**:
+*   Option 1: `Authorization: Bearer <api_token>` (Recommended)
+*   Option 2: `X-Bridge-Token: <api_token>`
+
+---
+
+### 2. SMS Gateway Endpoint: `POST /api/sms`
+
+Expected payload pushed by Logto's SMS webhook connector:
+
+*   **Request JSON**:
     ```json
     {
       "to": "+8613800138000",
@@ -266,7 +268,7 @@ sender_name = "系统通知"
     }
     ```
 
-*   **处理成功响应 (200 OK)**:
+*   **Success Response (200 OK)**:
     ```json
     {
       "status": "success",
@@ -277,11 +279,11 @@ sender_name = "系统通知"
 
 ---
 
-### 3. 邮件网关接口：`POST /api/email`
+### 3. Email Gateway Endpoint: `POST /api/email`
 
-由 Logto HTTP 邮件连接器触发的报文格式。网关将依据 `payload.locale` 加载对应的双语 HTML 模板，并传入验证码等参数进行渲染。
+Expected payload pushed by Logto's Email webhook connector:
 
-*   **请求体示例 (JSON)**:
+*   **Request JSON**:
     ```json
     {
       "to": "user@example.com",
@@ -295,7 +297,7 @@ sender_name = "系统通知"
     }
     ```
 
-*   **处理成功响应 (200 OK)**:
+*   **Success Response (200 OK)**:
     ```json
     {
       "status": "success",
@@ -305,25 +307,25 @@ sender_name = "系统通知"
 
 ---
 
-## 🎨 HTML 邮件模板矩阵
+## 🎨 HTML Email Template Matrix
 
-系统支持多种身份认证场景，模板统一存储在 `app/templates/{locale}/{type}.html` 中。支持的业务类型矩阵如下：
+Supported authentication workflows stored in `app/templates/{locale}/{type}.html`:
 
-| `type` 业务类型 | 中文邮件标题 | 英文邮件标题 | 场景描述 |
+| `type` Flow Name | Chinese Subject | English Subject | Description |
 | :--- | :--- | :--- | :--- |
-| `SignIn` | 登录身份验证码 | Sign In Verification Code | 登录、二次身份校验 |
-| `Register` | 欢迎注册 - 身份验证码 | Welcome - Registration Verification Code | 注册新账户 |
-| `ForgotPassword` | 重置密码 - 验证安全码 | Reset Password Verification Code | 找回或更改账户密码 |
-| `OrganizationInvitation` | 您已获邀加入组织 | Organization Invitation | 邀请用户加入组织，支持透传 `link` |
-| `BindNewIdentifier` | 绑定新账号 - 验证安全码 | Bind New Identifier - Verification Code | 绑定新手机号或邮箱 |
-| `MfaVerification` | 多因素身份验证 (MFA) - 验证安全码 | Multi-Factor Authentication (MFA) - Verification Code | 触发二次多因素身份校验 |
-| `TestConnection` | Logto 邮件服务连接测试成功 | Logto Mail Connector Test Successful | 在 Logto 控制台中测试邮件连接器连通性 |
+| `SignIn` | 登录身份验证码 | Sign In Verification Code | Direct sign-in or multi-factor confirmation |
+| `Register` | 欢迎注册 - 身份验证码 | Welcome - Registration Verification Code | Registering a new account |
+| `ForgotPassword` | 重置密码 - 验证安全码 | Reset Password Verification Code | Resetting or changing user passwords |
+| `OrganizationInvitation` | 您已获邀加入组织 | Organization Invitation | Organization invite containing `link` parameter |
+| `BindNewIdentifier` | 绑定新账号 - 验证安全码 | Bind New Identifier - Verification Code | Binding a new email or phone number |
+| `MfaVerification` | 多因素身份验证 (MFA) - 验证安全码 | Multi-Factor Authentication (MFA) - Verification Code | Extra verification code for MFA challenge |
+| `TestConnection` | Logto 邮件服务连接测试成功 | Logto Mail Connector Test Successful | Connection testing inside Logto admin panel |
 
 > [!TIP]
-> **优雅的模板降级机制**：若 Logto 发送了自定义的非标 `type` 模板请求，网关会自动静默降级为通用 `SignIn` 基础模板进行动态加载与渲染，杜绝因为模板文件缺失而直接向 Logto 抛出 5xx 异常，从而最大限度地保障线上认证链路的高可用性。
+> **Graceful Template Fallback**: If Logto requests a non-standard `type` flow, the gateway will silently fallback and render the `SignIn.html` template rather than throwing a `500` error, maximizing system availability.
 
 ---
 
-## ⚖️ 开源许可证
+## ⚖️ License
 
-本项目基于 **MIT License** 开源。详情参见 [LICENSE](LICENSE) 文件。
+Distributed under the **MIT License**. See `LICENSE` for details.
