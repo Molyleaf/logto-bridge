@@ -1,0 +1,37 @@
+# ==============================================================================
+# Logto Bridge Configuration Template
+# Rename this file to `config.toml` in your active development/production environment.
+# ==============================================================================
+
+# API 接口访问的安全令牌。来自 Logto 的请求头中必须携带 Bearer Token 或 X-Bridge-Token，且必须与此值匹配。
+api_token = "replace_with_your_secure_bearer_token"
+
+# 阿里云号码认证服务（DYPNSAPI）配置，用于发送短信验证码（SendSmsVerifyCode）
+[sms.alicloud]
+access_key_id = "LTAI5tXxxxxxxxxxxxxxxxxx"
+access_key_secret = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+endpoint = "dypnsapi.aliyuncs.com" # 号码认证服务默认服务端点
+sign_name = "阿里云" # 必须是号码认证控制台审核通过的系统签名（不支持自定义签名）
+template_code = "SMS_200000000" # 必须是号码认证控制台审核通过的系统模板
+scheme_name = "default scheme" # 方案名称，非必填，默认为 "default scheme"
+code_length = 6 # 验证码长度，支持 4-8 位，默认为 6
+valid_time = 300 # 验证码有效时间（秒），默认为 300 秒（5分钟）
+
+# 负载均衡的多个 SMTP 发送账户池
+[[email.smtp_accounts]]
+host = "smtp.example1.com"
+port = 465 # SSL/TLS 通常是 465，StartTLS 通常是 587，非加密通常是 25
+username = "user1@example1.com"
+password = "smtp_password_1"
+use_tls = true # 若为 true 强开启 SSL/TLS 加密；若为 false 则通过 StartTLS 协商
+sender_email = "security@example1.com"
+sender_name = "Logto Authenticator"
+
+[[email.smtp_accounts]]
+host = "smtp.example2.com"
+port = 587
+username = "user2@example2.com"
+password = "smtp_password_2"
+use_tls = false # StartTLS
+sender_email = "no-reply@example2.com"
+sender_name = "Logto Security Gateway"

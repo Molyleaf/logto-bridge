@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册验证码</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #F4F6F8;
+            font-family: OPPOSans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #333333;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #FFFFFF;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 91, 172, 0.06);
+            border: 1px solid #EAEAEA;
+        }
+        .header {
+            background: linear-gradient(135deg, #0A192F 0%, #172A45 100%);
+            padding: 35px 40px;
+            text-align: center;
+            border-bottom: 3px solid #005BAC;
+        }
+        .header h1 {
+            color: #FFFFFF;
+            font-size: 24px;
+            margin: 0;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .content {
+            padding: 40px;
+            line-height: 1.6;
+        }
+        .welcome-text {
+            font-size: 16px;
+            color: #4A5568;
+            margin-bottom: 25px;
+        }
+        .highlight-card {
+            background-color: #F7FAFC;
+            border-left: 4px solid #005BAC;
+            padding: 20px 25px;
+            margin: 25px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .code-container {
+            text-align: center;
+            margin: 35px 0;
+            padding: 20px;
+            background: radial-gradient(circle, #F8FAFC 0%, #F1F5F9 100%);
+            border-radius: 8px;
+            border: 1px dashed #CBD5E1;
+        }
+        .code-text {
+            font-size: 38px;
+            font-weight: 700;
+            letter-spacing: 6px;
+            color: #005BAC;
+            margin: 0;
+            font-family: Consolas, Monaco, monospace;
+        }
+        .warning-box {
+            margin-top: 30px;
+            padding: 15px 20px;
+            background-color: #FFF5F5;
+            border-radius: 6px;
+            border: 1px solid #FED7D7;
+            font-size: 13px;
+            color: #C53030;
+        }
+        .footer {
+            background-color: #F8FAFC;
+            padding: 25px 40px;
+            text-align: center;
+            font-size: 12px;
+            color: #A0AEC0;
+            border-top: 1px solid #E2E8F0;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Logto 安全中心</h1>
+        </div>
+        <div class="content">
+            <div class="welcome-text">热烈欢迎您的加入！</div>
+            <p>您正在注册新账户，本次注册申请的验证码如下：</p>
+            
+            <div class="code-container">
+                <div class="code-text">{{ code }}</div>
+            </div>
+
+            <div class="highlight-card">
+                验证码在 <strong>{{ valid_minutes }}</strong> 分钟内有效。请在注册页面中填写此验证码完成开户。
+            </div>
+
+            <div class="warning-box">
+                <strong>安全警示：</strong>此验证码仅用于您的新账号注册，请勿将其向外泄露。如果非您本人发起的注册请求，请忽略此邮件。
+            </div>
+        </div>
+        <div class="footer">
+            <p>本邮件由 Logto 身份安全中心系统自动发出，请勿直接回复。</p>
+            <p>© 2026 Logto Identity Security Gateway. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

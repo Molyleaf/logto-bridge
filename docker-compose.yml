@@ -1,0 +1,25 @@
+services:
+  bridge:
+    image: molyleaf/logto-bridge:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      LOG_LEVEL: info
+      TZ: Asia/Shanghai
+    volumes:
+      # Mount the configurations dynamically at runtime
+      - ./config:/srv/logto-bridge/config:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: always

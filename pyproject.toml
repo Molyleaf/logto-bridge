@@ -1,0 +1,40 @@
+[project]
+name = "logto-bridge"
+version = "0.1.0"
+description = "Logto HTTP integrations bridge for Alibaba Cloud SMS and load-balanced SMTP accounts."
+readme = "AGENTS.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "pydantic",
+    "pydantic-settings",
+    "jinja2",
+    "aiosmtplib",
+    "uvicorn[standard]",
+    "alibabacloud_dypnsapi20170525",
+    "alibabacloud-tea-openapi",
+    "tomli",
+]
+
+[project.optional-dependencies]
+dev = [
+    "httpx",
+    "pytest",
+    "pytest-asyncio",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["aiosmtplib", "alibabacloud_dypnsapi20170525", "alibabacloud_tea_openapi"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["pytest"]
+ignore_missing_imports = true
