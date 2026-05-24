@@ -2,7 +2,7 @@
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100.0+-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
-[![Docker](https://img.shields.io/badge/Docker-Supported-2496ED.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com)
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-molyleaf%2Flogto--bridge-blue.svg?style=flat&logo=docker&logoColor=white)](https://hub.docker.com/r/molyleaf/logto-bridge)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 `Logto Bridge Gateway` 是一个**轻量、高效、高可用**的第三方账户/网关桥接服务。专为 [Logto](https://logto.io) 身份认证平台定制，解决其无法直接对接国内主流短信供应商（如**阿里云号码认证服务**）或需要高可靠性**多 SMTP 账号负载均衡发送邮件**的痛点。
@@ -162,9 +162,16 @@ logto-bridge/
 
 ### 方案三：使用 Docker / Docker Compose（推荐生产环境）
 
+官方预构建镜像已托管于 [Docker Hub](https://hub.docker.com/r/molyleaf/logto-bridge)。
+
 本项目已将配置文件移出镜像，仅通过挂载或环境变量重写，最大程度保证镜像的安全性。
 
-1.  **构建并拉起容器**：
+1.  **从 Docker Hub 拉取镜像（可选）**：
+    ```bash
+    docker pull molyleaf/logto-bridge:latest
+    ```
+
+2.  **构建并拉起容器（使用 docker-compose）**：
     ```bash
     docker-compose up -d --build
     ```

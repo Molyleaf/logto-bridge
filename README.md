@@ -2,7 +2,7 @@
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100.0+-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
-[![Docker](https://img.shields.io/badge/Docker-Supported-2496ED.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com)
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-molyleaf%2Flogto--bridge-blue.svg?style=flat&logo=docker&logoColor=white)](https://hub.docker.com/r/molyleaf/logto-bridge)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [简体中文 (Simplified Chinese)](README.zh_CN.md) | English
@@ -164,9 +164,16 @@ logto-bridge/
 
 ### Option 3: Using Docker & Docker Compose (Production Environment)
 
+Official pre-built images are hosted on [Docker Hub](https://hub.docker.com/r/molyleaf/logto-bridge). 
+
 To guarantee secret credentials safety, the TOML config file is not packaged into the Docker image but is either mounted or overridden by environment variables.
 
-1.  **Build and Start Containers**:
+1.  **Pull the Image from Docker Hub (Optional)**:
+    ```bash
+    docker pull molyleaf/logto-bridge:latest
+    ```
+
+2.  **Build and Start Containers (via docker-compose)**:
     ```bash
     docker-compose up -d --build
     ```
