@@ -36,7 +36,7 @@ graph TD
         L[Logto Core Service]
     end
 
-    subgraph Logto Bridge Gateway (FastAPI)
+    subgraph "Logto Bridge Gateway (FastAPI)"
         Auth[Security Dependency layer verify_api_token]
         Router[Router Layer]
         SMS_C[AliCloud SMS Client]

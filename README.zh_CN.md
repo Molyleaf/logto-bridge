@@ -34,7 +34,7 @@ graph TD
         L[Logto Core Service]
     end
 
-    subgraph Logto Bridge Gateway (FastAPI)
+    subgraph "Logto Bridge Gateway (FastAPI)"
         Auth[安全依赖层 verify_api_token]
         Router[路由控制层 Router]
         SMS_C[阿里云号码认证客户端]
