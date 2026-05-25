@@ -24,7 +24,7 @@ async def test_sms_send_verify_code_success():
         client = AliCloudSMSClient()
 
         # 投递验证码
-        result = await client.send_verify_code("+8613000000000", "554433")
+        result = await client.send_verify_code("13000000000", "554433")
 
         # 断言
         assert result["success"] is True
@@ -35,7 +35,7 @@ async def test_sms_send_verify_code_success():
         mock_instance.send_sms_verify_code.assert_called_once()
         called_args = mock_instance.send_sms_verify_code.call_args[0][0]
 
-        assert called_args.phone_number == "+8613000000000"
+        assert called_args.phone_number == "13000000000"
         # 校验模板参数 JSON 内容是否包含正确的验证码
         param_dict = json.loads(called_args.template_param)
         assert param_dict["code"] == "554433"
@@ -56,7 +56,7 @@ async def test_sms_send_verify_code_failure():
         mock_instance.send_sms_verify_code.return_value = mock_response
 
         client = AliCloudSMSClient()
-        result = await client.send_verify_code("+8613000000000", "998877")
+        result = await client.send_verify_code("13000000000", "998877")
 
         assert result["success"] is False
         assert result["code"] == "isv.BUSINESS_LIMIT_CONTROL"

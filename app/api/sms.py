@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -56,9 +57,43 @@ async def handle_logto_sms(request: LogtoSMSRequest):
         f"收到 Logto 的短信网关推送，类型: {request.type}，IP: {request.ip or '未知'}"
     )
 
+    # 校验并归一化手机号格式（遵循只在边界校验一次的原则）
+    phone_cleaned = request.to.strip().replace(" ", "").replace("-", "")
+
+    if phone_cleaned.startswith("+"):
+        if not phone_cleaned.startswith("+86"):
+            logger.warning(f"拒绝发送短信：手机号 {request.to} 国家代码不是 +86")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only +86 or standard Chinese mobile numbers are supported. (仅支持 +86 或中国大陆规范手机号)",
+            )
+
+        # 检查是否符合 +861xxxxxxxxxx 格式
+        national_part = phone_cleaned[3:]
+        if not re.match(r"^1[3-9]\d{9}$", national_part):
+            logger.warning(
+                f"拒绝发送短信：手机号 {request.to} 不符合 +861xxxxxxxxxx 格式规范"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid Chinese mobile number format. (手机号格式不符合中国大陆 11 位手机号规范)",
+            )
+        normalized_phone = national_part
+    else:
+        # 检查是否为中国规范手机号 1xxxxxxxxxx
+        if not re.match(r"^1[3-9]\d{9}$", phone_cleaned):
+            logger.warning(
+                f"拒绝发送短信：手机号 {request.to} 不是合法的中国大陆手机号"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only +86 or standard Chinese mobile numbers are supported. (仅支持 +86 或中国大陆规范手机号)",
+            )
+        normalized_phone = phone_cleaned
+
     # 调用阿里云集成客户端
     result = await sms_client.send_verify_code(
-        phone_number=request.to, code=request.payload.code or ""
+        phone_number=normalized_phone, code=request.payload.code or ""
     )
 
     if result["success"]:

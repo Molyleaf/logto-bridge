@@ -63,7 +63,7 @@ def test_sms_webhook_route(mock_send_verify_code):
 
     # 校验调用参数
     mock_send_verify_code.assert_called_once_with(
-        phone_number="+8618800001111", code="887766"
+        phone_number="18800001111", code="887766"
     )
 
 
@@ -266,3 +266,81 @@ def test_payload_extra_fields_compatibility(mock_send_email):
     called_kwargs = mock_send_email.call_args[1]
 
     assert "776655" in called_kwargs["html_content"]
+
+
+@patch("app.api.sms.sms_client.send_verify_code", new_callable=AsyncMock)
+def test_sms_validation_and_normalization_success(mock_send_verify_code):
+    """
+    测试手机号符合规范时被正确校验、归一化并成功转发。
+
+    @ai-ut-matrix: 测试 +86 开头、无前缀以及带空格/横线的国内规范手机号。
+    @ai-ut-mock: 模拟 AliCloudSMSClient.send_verify_code 返回成功。
+    @ai-ut-assert: 校验 API 返回 200，且 mock 收到的手机号均为 11 位纯数字规范手机号。
+    """
+    mock_send_verify_code.return_value = {
+        "success": True,
+        "request_id": "MOCK-REQ-VALID",
+    }
+    headers = {"Authorization": f"Bearer {settings.api_token}"}
+
+    # 测试用例矩阵：(输入手机号, 期望传递给阿里云的归一化手机号)
+    test_cases = [
+        ("+8613812345678", "13812345678"),
+        ("13812345678", "13812345678"),
+        ("+86 138-1234-5678", "13812345678"),
+        (" 138 1234 5678 ", "13812345678"),
+    ]
+
+    for input_phone, expected_phone in test_cases:
+        mock_send_verify_code.reset_mock()
+        payload = {
+            "to": input_phone,
+            "type": "SignIn",
+            "payload": {"code": "123456"},
+        }
+        response = client.post("/api/sms", json=payload, headers=headers)
+        assert response.status_code == 200
+        assert response.json()["status"] == "success"
+        mock_send_verify_code.assert_called_once_with(
+            phone_number=expected_phone, code="123456"
+        )
+
+
+@patch("app.api.sms.sms_client.send_verify_code", new_callable=AsyncMock)
+def test_sms_validation_rejected(mock_send_verify_code):
+    """
+    测试手机号不符合规范时被直接拒绝发送，且不调用阿里云接口。
+
+    @ai-ut-matrix: 测试非 +86 国际号码、非 11 位手机号、非 1 开头的国内号码等。
+    @ai-ut-mock: 无（不应触发调用）。
+    @ai-ut-assert: 校验 API 返回 400，且阿里云接口从未被调用。
+    """
+    mock_send_verify_code.return_value = {
+        "success": True,
+        "request_id": "MOCK-REJECTED-BUT-CALLED",
+    }
+    headers = {"Authorization": f"Bearer {settings.api_token}"}
+
+    # 待拒绝的测试用例列表
+    rejected_phones = [
+        "+14155552671",  # 美国号码
+        "+85261234567",  # 香港号码
+        "+8612345678",  # +86 但位数不足
+        "+862161234567",  # +86 但不是移动手机号（以 2 开头的固话等）
+        "12345678901",  # 11位但不是以 1 开头
+        "1381234567",  # 国内手机号但少一位
+        "138123456789",  # 国内手机号但多一位
+        "invalid_phone",  # 垃圾字符
+    ]
+
+    for phone in rejected_phones:
+        mock_send_verify_code.reset_mock()
+        payload = {
+            "to": phone,
+            "type": "SignIn",
+            "payload": {"code": "123456"},
+        }
+        response = client.post("/api/sms", json=payload, headers=headers)
+        assert response.status_code == 400
+        assert "detail" in response.json()
+        mock_send_verify_code.assert_not_called()
